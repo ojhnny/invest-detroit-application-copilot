@@ -115,6 +115,7 @@ source ids your answer actually relies on; general guidance needs none.
 
 ## Documents
 
+- [docs/FORMASSEMBLY-INTEGRATION.md](docs/FORMASSEMBLY-INTEGRATION.md): **putting the copilot on the real form**: Render server, FormAssembly settings, WordPress script tag, Emma, testing
 - [docs/SETUP.md](docs/SETUP.md): turning on the AI, Render settings, insights, limits, cost
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it's built and how to attach it to the real FormAssembly form
 - [docs/RESEARCH-NOTES.md](docs/RESEARCH-NOTES.md): where the knowledge-base facts come from
