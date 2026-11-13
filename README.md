@@ -35,7 +35,7 @@
 - **Accounts:** the student pilot ran on the team's Render account and a student's University of Michigan AI key, both of which end after the project. Invest Detroit needs its own OpenAI API and Render accounts, then adds `OPENAI_API_KEY` in Render ([setup](docs/SETUP.md)).
 - **Cost (estimate):** about $0.01–$0.04 per chat question, so about $5–$20 a month at 500 questions. Hosting is about $7 a month, plus about $6 for the optional database: about $20–$35 a month in total. Daily caps and an OpenAI budget limit cap the worst case.
 - **Data:** no chat text is stored; SSNs are blocked from the chat; the staff summary goes only into FormAssembly.
-- **Ownership:** [NAMED OWNER AT INVEST DETROIT] owns the knowledge base and prompt, reviews the `/insights` page monthly, and reruns the test set before any change.
+- **Ownership:** [NAMED OWNER AT INVEST DETROIT] owns the knowledge base and prompt, reviews the usage counts in Invest Detroit's own reporting monthly ([pipeline](docs/DATA-PIPELINE.md)), and reruns the test set before any change.
 - **Next steps (ranked):**
   1. Install the add-on on the live FormAssembly form for a 30-day trial.
   2. Staff confirm the knowledge-base facts.
@@ -95,7 +95,7 @@ source ids your answer actually relies on; general guidance needs none.
 | `src/components/` | The review panel, chat window and form fields |
 | `src/prototype/` | The copy of the intake form used for the demo, with the sample applicant |
 | `src/embed/` | The add-on for Invest Detroit's real FormAssembly form |
-| `server/`, `api/` | The server: chat endpoint (OpenAI), guardrails, ratings, `/insights` |
+| `server/`, `api/` | The server: chat endpoint (OpenAI), guardrails, ratings, usage counts and their export for Invest Detroit's pipeline |
 | `tests/` | Automated checks (`npm test`) |
 | `tools/` | Test set runner, impact measurement, live chat check, add-on test page |
 | `docs/` | Setup, architecture, user guide, test results, client deck, data-flow note |
@@ -123,7 +123,8 @@ source ids your answer actually relies on; general guidance needs none.
 ## Documents
 
 - [docs/FORMASSEMBLY-INTEGRATION.md](docs/FORMASSEMBLY-INTEGRATION.md): **putting the copilot on the real form**: Render server, FormAssembly settings, WordPress script tag, Emma, testing
-- [docs/SETUP.md](docs/SETUP.md): turning on the AI, Render settings, insights, limits, cost
+- [docs/DATA-PIPELINE.md](docs/DATA-PIPELINE.md): getting the usage counts into Invest Detroit's own database (export, webhook, page events, direct table)
+- [docs/SETUP.md](docs/SETUP.md): turning on the AI, Render settings, limits, cost
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it's built and how to attach it to the real FormAssembly form
 - [docs/RESEARCH-NOTES.md](docs/RESEARCH-NOTES.md): where the knowledge-base facts come from
 - [docs/user-guide/](docs/user-guide/): user guide for applicants and screening staff (PDF, Word)
