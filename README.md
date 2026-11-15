@@ -131,3 +131,4 @@ source ids your answer actually relies on; general guidance needs none.
 - [docs/testing/](docs/testing/): test set, results sheet and how to rerun it
 - [docs/presentation/](docs/presentation/): the final presentation (stakeholder deck: the need, how it is built, limits and cost, next steps) and a feature reference deck with screenshots
 - [docs/Invest-Detroit-Copilot-Data-Flow.pdf](docs/Invest-Detroit-Copilot-Data-Flow.pdf): where applicant data goes (for IT)
+- [docs/Invest-Detroit-Copilot-Backend-Guide.pdf](docs/Invest-Detroit-Copilot-Backend-Guide.pdf): how the backend works, its limits, what to reconfigure and what to be careful about (for IT; source: [docs/BACKEND-GUIDE.md](docs/BACKEND-GUIDE.md))
