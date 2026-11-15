@@ -129,5 +129,5 @@ source ids your answer actually relies on; general guidance needs none.
 - [docs/RESEARCH-NOTES.md](docs/RESEARCH-NOTES.md): where the knowledge-base facts come from
 - [docs/user-guide/](docs/user-guide/): user guide for applicants and screening staff (PDF, Word)
 - [docs/testing/](docs/testing/): test set, results sheet and how to rerun it
-- [docs/presentation/](docs/presentation/): client presentation deck
+- [docs/presentation/](docs/presentation/): the final presentation (stakeholder deck: the need, how it is built, limits and cost, next steps) and a feature reference deck with screenshots
 - [docs/Invest-Detroit-Copilot-Data-Flow.pdf](docs/Invest-Detroit-Copilot-Data-Flow.pdf): where applicant data goes (for IT)
