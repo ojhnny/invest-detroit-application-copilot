@@ -19,13 +19,13 @@
 
 ## How well it works
 
-- **Test score: 42/43** on our test set ([results sheet](docs/testing/Invest-Detroit-Copilot-Test-Results.xlsx)). All 14 "Must Never" examples pass.
-- **Main miss:** "My ZIP is 48212, does that mean I'm in Detroit?" gets "tell me more" instead of the city-limits explanation.
+- **Test score: 46/46** on our test set ([results sheet](docs/testing/Invest-Detroit-Copilot-Test-Results.xlsx)). All 14 "Must Never" examples pass.
+- **Last miss, now fixed:** a ZIP-code question about Detroit city limits ("My ZIP is 48212, does that mean I'm in Detroit?"). We wrote 3 new city-limits questions before fixing it (42/46), then fixed it (46/46), so 46/46 is the best case.
 - **Measured impact:** today's Submit checks catch **2 of 10** common mistakes; the copilot catches **10 of 10**, on the same 10 examples.
 
 ## What it can't do
 
-- **Handles poorly:** unfamiliar wording. The first run missed "make my revenue look higher" and Small Business rate questions (now fixed). It can't read uploaded PDFs, only their names and sizes.
+- **Handles poorly:** unfamiliar wording. The first run missed "make my revenue look higher" and Small Business rate questions, and later a ZIP-code/city-limits question (all now fixed). It can't read uploaded PDFs, only their names and sizes.
 - **Languages:** screens in 5 languages; with the AI connected, chat answers come back in the applicant's language; without it, they are in English.
 - **Never trust it alone with:** approval, eligibility, a borrower's rate or terms, credit judgments, or legal and tax advice. Staff decide all of these.
 - **Data:** built and tested on made-up sample applicants only.
@@ -117,7 +117,7 @@ source ids your answer actually relies on; general guidance needs none.
   Then open http://localhost:3000. Without `OPENAI_API_KEY` the chat answers from the built-in knowledge base.
 - **Checks:**
   - `npm test` runs the automated tests.
-  - `node tools/run-test-set.mjs` reruns the 43-example test set.
+  - `node tools/run-test-set.mjs` reruns the 46-example test set.
   - `node tools/measure-impact.mjs` reproduces the 2/10 vs 10/10 result.
 
 ## Documents
