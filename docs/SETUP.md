@@ -153,6 +153,14 @@ There is no dashboard: Invest Detroit reads the counts into its own system. The 
 | `ALLOWED_ORIGINS` | investdetroit.com and www.investdetroit.com | Websites allowed to call the chat, ratings and counts: the add-on on Invest Detroit's page. Comma-separated. See [FORMASSEMBLY-INTEGRATION.md](FORMASSEMBLY-INTEGRATION.md). |
 | `ANTHROPIC_API_KEY` | none | Optional alternative: Claude answers instead when no OpenAI key is set (or when `AI_PROVIDER=anthropic`). Its model is set with `ASSISTANT_MODEL` (default `claude-opus-5-5`). |
 
+## Turning off the "Fill with sample applicant" button
+
+The demo site has a "Fill with sample applicant" button above the form that fills in a made-up applicant. It is for demos only and is **not** part of the add-on that goes on Invest Detroit's real form. It is controlled by one setting:
+
+- **Turn it off:** set `VITE_SHOW_SAMPLE_BUTTON=false` in the host's environment settings (on Render: the service's **Environment** page) and redeploy. Or change `true` to `false` in [`src/prototype/demoSettings.js`](../src/prototype/demoSettings.js).
+- **Turn it back on:** remove the setting, or set it to `true`.
+- **Delete it for good:** delete `src/prototype/demoSettings.js`, then remove the lines marked `DEMO: sample applicant button` in `src/prototype/IntakeForm.jsx`. Keep `src/prototype/sampleApplicant.js`: the automated tests use it as test data.
+
 ## Cost
 
 - **Who pays:** each question is billed to whoever owns the key.
