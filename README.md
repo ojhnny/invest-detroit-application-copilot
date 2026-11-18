@@ -2,13 +2,11 @@
 
 **Purpose:** helps applicants fill in Invest Detroit's Real Estate/C&I In-Take Form correctly the first time.
 
-**Live link:** https://invest-detroit-project-1.onrender.com · 
+**Live link:** https://invest-detroit-project-1.onrender.com 
 
 **Team:** Invest Detroit Team #1 (Johnny Lin, Ginny Liu, Shantanu Shah, Samantha Luu) 
 
 **Client:** Invest Detroit, Real Estate lending 
-
-**Date:** November 17, 2026
 
 ## Demo video (2.5 minutes)
 
