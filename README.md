@@ -4,7 +4,7 @@
 
 **Live link:** https://invest-detroit-project-1.onrender.com 
 
-**Team:** Invest Detroit Team #1 (Johnny Lin, Ginny Liu, Shantanu Shah, Samantha Luu) 
+**Team:** Invest Detroit #1 (Johnny Lin, Ginny Liu, Shantanu Shah, Samantha Luu) 
 
 **Client:** Invest Detroit, Real Estate lending 
 
