@@ -7,6 +7,12 @@ import { SOURCES } from '../src/copilot/config.js'
 import { NO_MATCH } from '../src/copilot/guideTransport.js'
 import { OUT_OF_SCOPE_MESSAGE } from '../src/copilot/guardrails/messages.js'
 
+/**
+ * How long one AI request may take before it is retried once, then the built-in guide answers.
+ * 30 s by default, as before (so about a minute at most before the guide answers); ASSISTANT_TIMEOUT_MS changes it.
+ */
+export const AI_TIMEOUT_MS = () => Number(process.env.ASSISTANT_TIMEOUT_MS) || 30_000
+
 /** Reply `from` values that mean "an AI model answered" (the chat shows its connected subtitle). */
 export const AI_FROM = ['openai', 'claude']
 

@@ -8,7 +8,7 @@ import { SYSTEM_PROMPT } from '../server/systemPrompt.js'
 import { handleAssistantRequest } from '../server/assistantHandler.js'
 import { NO_MATCH } from '../src/copilot/guideTransport.js'
 import { createMemoryStore } from '../server/store.js'
-import handler from '../api/assistant.js'
+import handler from '../server/assistantEndpoint.js'
 
 // A stand-in for the OpenAI client: records each request and returns a canned response.
 function fakeClient(response) {

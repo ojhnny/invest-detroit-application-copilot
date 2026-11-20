@@ -12,7 +12,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { SYSTEM_PROMPT } from './systemPrompt.js'
-import { KNOWLEDGE_TEXT, REPLY_SCHEMA, toChatMessages, fallbackReply, finishReply } from './modelReply.js'
+import { KNOWLEDGE_TEXT, REPLY_SCHEMA, toChatMessages, fallbackReply, finishReply, AI_TIMEOUT_MS } from './modelReply.js'
 
 export const DEFAULT_MODEL = 'claude-opus-5-5'
 export { REPLY_SCHEMA }
@@ -26,7 +26,9 @@ export const toClaudeMessages = toChatMessages
  * @returns {({ modelInput }) => Promise<object>} an `answer` function for handleAssistantRequest
  */
 export function createClaudeAnswerer({ client, model = process.env.ASSISTANT_MODEL || DEFAULT_MODEL, effort = process.env.ASSISTANT_EFFORT || 'low', onEvent = () => {} } = {}) {
-  const api = client || new Anthropic() // reads ANTHROPIC_API_KEY from the environment
+  // Reads ANTHROPIC_API_KEY from the environment. Same time limits as OpenAI: 30 s, one retry, then the
+  // built-in guide answers (the SDK's own default would wait up to 10 minutes).
+  const api = client || new Anthropic({ timeout: AI_TIMEOUT_MS(), maxRetries: 1 })
   return async ({ modelInput }) => {
     const response = await api.beta.messages.create({
       model,

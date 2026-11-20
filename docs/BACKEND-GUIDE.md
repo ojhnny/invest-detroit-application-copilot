@@ -35,7 +35,7 @@ Applications themselves **never pass through the service**. When someone presses
 
 # 2. What happens when someone asks the chat a question
 
-Each step below happens on every question. Code: `api/assistant.js`, `server/assistantHandler.js`.
+Each step below happens on every question. Code: `server/assistantEndpoint.js`, `server/assistantHandler.js`.
 
 1. **The browser cleans the message.** Anything that looks like a Social Security number is replaced before the message leaves the page.
 2. **The service checks the size and the rate.** A message can be at most 2,000 characters; the last 20 turns of the conversation are kept; a whole request can be at most 64 KB. Each visitor is limited to 20 questions a minute.
@@ -120,13 +120,12 @@ Code: `src/embed/`. It is built into one file, `copilot.js`.
 | Piece | File | In plain words |
 |---|---|---|
 | Web server | `server/webServer.js` | Starts the service, serves the demo site and the `/api/` addresses, adds the "allowed websites" check, shuts down cleanly |
-| Chat endpoint | `api/assistant.js` | Limits, safety checks and picking the AI |
+| Chat endpoint | `server/assistantEndpoint.js` | Limits, safety checks and picking the AI |
 | Request rules | `server/assistantHandler.js` | Cleans the request and checks the answer |
 | AI connection | `server/aiProvider.js`, `openaiAnswerer.js`, `claudeAnswerer.js` | Picks OpenAI (or Claude) from which key is set |
 | Instructions | `server/systemPrompt.js`, `knowledgeContext.js` | What the AI is told, and the facts it gets |
 | Counts and limits | `server/store.js`, `server/usage.js` | Memory or Postgres; export, webhook, ratings |
-| Other host option | `api/*.js`, `vercel.json` | The same functions in Vercel's style |
-| Checks | `tests/`, `tools/check-chat.mjs`, `tools/run-test-set.mjs` | 206 automatic tests, 8 live checks, the 46-question test set |
+| Checks | `tests/`, `tools/check-chat.mjs`, `tools/run-test-set.mjs` | 213 automatic tests, 8 live checks, the 46-question test set |
 
 **Addresses the service offers:** `POST /api/assistant` (chat), `POST /api/events` (usage counts from the add-on), `POST /api/feedback` (ratings), `GET /api/usage` (export, needs the token), `GET /healthz` (health check, answers "ok"). It serves the demo page and the add-on file at `/embed/copilot.js`.
 
@@ -152,6 +151,8 @@ This is the most important section for handoff. Everything in the first table is
 | `ASSISTANT_RATE_LIMIT` | Questions a minute per visitor | 20 | Adjust |
 | `ASSISTANT_VISITOR_DAILY` | AI answers a day per visitor | 60 | Adjust |
 | `ASSISTANT_DAILY_LIMIT` | AI answers a day for the whole site | 500 (we suggested 100 for the pilot) | **Set deliberately: it is your main spending brake** |
+| `ASSISTANT_TIMEOUT_MS` | How long one AI request may take before retrying once, then the built-in answers | 30000 (30 s) | Usually leave it |
+| `EVENTS_RATE_LIMIT`, `FEEDBACK_RATE_LIMIT` | Usage-count batches and ratings a minute per visitor | 120, 20 | Usually leave it |
 | `USAGE_EXPORT_TOKEN` | Password for `/api/usage` | Not set until needed | Set a long random value if you use the export |
 | `USAGE_WEBHOOK_URL`, `USAGE_WEBHOOK_SECRET` | Push counts to your system | Not set | Set if you want pushes |
 | `PORT` | Which port to listen on | Set by the host | Set by yours |
@@ -166,7 +167,7 @@ These are not settings. A developer must change them in the files.
 - **The 28 sources and all facts** (`src/copilot/config.js`, `knowledge.js`, `fieldGuide.js`).
 - **The 17 review rules** and their thresholds (for example the loan-to-budget check) in `src/copilot/review.js`. Invest Detroit's policy people should read them.
 - **Languages:** English, Spanish, Arabic, Bengali and Chinese. Every on-screen string must be translated; a test enforces this when text is added.
-- **The demo replica page** only asks the service for AI answers on Vercel, Render and localhost addresses (`server_hosts` in `config.js`). This does not affect the add-on on your form.
+- **The demo replica page** only asks the service for AI answers on Render and localhost addresses (`server_hosts` in `config.js`). This does not affect the add-on on your form.
 - **`render.yaml`** points at our working branch and names our database. It is only needed if you use Render; otherwise ignore it.
 
 # 9. Limitations: what it cannot do yet
@@ -209,11 +210,9 @@ Ordered roughly by importance.
 
 **10. Dependencies and security review.** The service uses a handful of packages (including the OpenAI and Anthropic libraries and a Postgres library). We have not run a formal security audit or penetration test, and we have not run a dependency vulnerability scan. Run one before going live.
 
-**11. Hosting variants differ.** On Vercel, the "allowed websites" check is not built in, and the in-memory per-minute brake is ineffective across short-lived copies. Prefer the Node server unless there is a reason not to.
+**11. No Dockerfile.** If you deploy with containers, a short one is needed.
 
-**12. No Dockerfile.** If you deploy with containers, a short one is needed.
-
-**13. Public repository.** If you publish this code, remember that the instructions, the knowledge base and the rules are all readable by anyone. They contain no secrets, but they are public.
+**12. Public repository.** If you publish this code, remember that the instructions, the knowledge base and the rules are all readable by anyone. They contain no secrets, but they are public.
 
 # 11. How to improve it: suggested next steps
 

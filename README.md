@@ -97,7 +97,7 @@ source ids your answer actually relies on; general guidance needs none.
 | `src/components/` | The review panel, chat window and form fields |
 | `src/prototype/` | The copy of the intake form used for the demo, with the sample applicant |
 | `src/embed/` | The add-on for Invest Detroit's real FormAssembly form |
-| `server/`, `api/` | The server: chat endpoint (OpenAI), guardrails, ratings, usage counts and their export for Invest Detroit's pipeline |
+| `server/` | The server: chat endpoint (OpenAI), guardrails, ratings, usage counts and their export for Invest Detroit's pipeline |
 | `tests/` | Automated checks (`npm test`) |
 | `tools/` | Test set runner, impact measurement, live chat check, add-on test page |
 | `docs/` | Setup, architecture, user guide, test results, client deck, data-flow note |

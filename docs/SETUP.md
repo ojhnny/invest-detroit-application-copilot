@@ -114,8 +114,6 @@ Use a **Web Service**, not a Static Site. A static site can't run the chat endpo
 
 The same settings are saved in `render.yaml`, so the service can also be created with **New → Blueprint**. Node is pinned to version 22. Render redeploys by itself when the branch changes.
 
-Vercel also works (`vercel.json`, `api/*.js`). There, add the same environment variables under **Settings → Environment Variables**, then redeploy.
-
 ## Usage counts, ratings and limits
 
 | What | How to turn it on |
@@ -145,6 +143,8 @@ There is no dashboard: Invest Detroit reads the counts into its own system. The 
 | `ASSISTANT_RATE_LIMIT` | `20` | Questions per minute from one visitor (a basic brake) |
 | `ASSISTANT_VISITOR_DAILY` | `60` | AI answers per visitor per day |
 | `ASSISTANT_DAILY_LIMIT` | `500` | AI answers per day for the whole site |
+| `ASSISTANT_TIMEOUT_MS` | `30000` | How long one AI request may take (it is tried twice) before the built-in guide answers |
+| `EVENTS_RATE_LIMIT`, `FEEDBACK_RATE_LIMIT` | `120`, `20` | Usage-count batches and star ratings per minute from one visitor (stops scripts from inflating the counts) |
 | `ASSISTANT_SALT` | random at start | Keeps visitor counting steady across restarts |
 | `DATABASE_URL` | none | Postgres for counts, ratings and limits |
 | `DATABASE_SSL` | automatic | `false` or `true` to force TLS off or on for the database (for a self-hosted Postgres) |
@@ -179,7 +179,7 @@ The demo site has a "Fill with sample applicant" button above the form that fill
 - `server/knowledgeContext.js`: the knowledge base, built from the same files as the built-in answers
 - `server/systemPrompt.js`: the AI's instructions (public, contains no secrets)
 - `server/assistantHandler.js`: validation, privacy, guardrails and the output check
-- `api/assistant.js`: the chat endpoint (rate limit, daily limits, AI or guide)
+- `server/assistantEndpoint.js`: the chat endpoint (rate limit, daily limits, AI or guide)
 - `server/webServer.js`: serves `dist/` plus `/api/*` on Render (`npm start`)
 - `tests/openai.test.js`: checks the request sent to OpenAI, guardrails first, refusals and cut-offs, the reasoning retry, and the fallback when a key is wrong
 
@@ -193,4 +193,4 @@ Render is only where we happened to host it. Nothing in the code needs Render. A
 4. Optional: `DATABASE_URL` for counts that survive restarts, `USAGE_EXPORT_TOKEN`, `USAGE_WEBHOOK_URL`/`USAGE_WEBHOOK_SECRET` (see `DATA-PIPELINE.md`).
 5. Point the add-on at it: the script tag's `src` is on that server, or add `data-server="https://your-service-address"`.
 
-The demo replica page only asks the server for AI answers on hosts listed in `server_hosts` in `src/copilot/config.js` (Vercel, Render and localhost). If you serve the replica page from another address, add it there. The FormAssembly add-on does not use that list.
+The demo replica page only asks the server for AI answers on hosts listed in `server_hosts` in `src/copilot/config.js` (Render and localhost). If you serve the replica page from another address, add it there. The FormAssembly add-on does not use that list.

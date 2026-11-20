@@ -105,13 +105,15 @@ It never includes an SSN. It's sent only inside the application, to FormAssembly
 ## Step 4: add the script tag
 
 ```html
-<script src="https://<your-service>.onrender.com/embed/copilot.js" defer
+<script src="https://<your-service>.onrender.com/embed/copilot.js" async
         data-summary-field="tfa_1234"
         data-launcher-bottom="84px"></script>
 ```
 
 - Replace `tfa_1234` with the hidden field's ID from step 2.
 - `data-launcher-bottom` lifts the chat button above FormAssembly's spam-check badge.
+- Keep `async` (not `defer`). With `defer`, the browser holds back the page's "ready" moment until our script arrives, and FormAssembly starts its own form scripts at that moment. If our server is slow or waking up, their form would wait too. With `async` the page never waits for us; the add-on attaches as soon as it arrives.
+- For the live form, run the server on an always-on Render plan (`starter` or above). The free plan sleeps when idle, so the add-on and the chat can take about a minute to appear for the first visitor after a quiet spell.
 
 **Where to put it (one of these):**
 - **WordPress (recommended):** on the Need Support page, add a **Custom HTML** block below the form, or use your header/footer code plugin limited to that page.
@@ -121,7 +123,7 @@ It never includes an SSN. It's sent only inside the application, to FormAssembly
 **To make it look and work like the demo site,** use the full version:
 
 ```html
-<script src="https://<your-service>.onrender.com/embed/copilot.js" defer
+<script src="https://<your-service>.onrender.com/embed/copilot.js" async
         data-summary-field="tfa_1234"
         data-launcher-bottom="84px"
         data-intro="true"

@@ -4,7 +4,7 @@
 // https://<server>/embed/copilot.js. Add ONE tag to the page that shows the FormAssembly form
 // (in WordPress, or in the form's own custom-code area):
 //
-//   <script src="https://<server>/embed/copilot.js" defer
+//   <script src="https://<server>/embed/copilot.js" async
 //           data-summary-field="tfa_1234"                (recommended: hidden field for the staff summary)
 //           data-launcher-bottom="84px"                  (optional: lift the chat button)
 //           data-progress-top="80px"                     (optional: room for a sticky site header)

@@ -51,7 +51,7 @@ const KINDS = new Set(['answer', 'no_answer', 'out_of_scope', 'clarify', 'integr
 
 /**
  * Keep only citations we know about, so the model can't invent links. Accepts our server's
- * `{ reply: {...} }` (api/assistant.js) or a plain `{ text, source_ids }` from another endpoint.
+ * `{ reply: {...} }` (server/assistantEndpoint.js) or a plain `{ text, source_ids }` from another endpoint.
  */
 function normalizeReply(raw) {
   const r = raw?.reply && typeof raw.reply === 'object' ? raw.reply : raw

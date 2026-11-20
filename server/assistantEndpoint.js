@@ -1,4 +1,4 @@
-// Chat endpoint: POST /api/assistant (Vercel runs this file; Render runs it via server/webServer.js)
+// Chat endpoint: POST /api/assistant (served by server/webServer.js on Render)
 //
 // Every chat question goes through handleAssistantRequest() (validation, privacy, guardrails,
 // output check). With OPENAI_API_KEY set, allowed questions are answered by OpenAI (or by Claude
@@ -10,18 +10,21 @@
 //   ASSISTANT_RATE_LIMIT        questions per minute from one visitor (default 20)
 //   ASSISTANT_VISITOR_DAILY     AI answers per visitor per day (default 60)
 //   ASSISTANT_DAILY_LIMIT       AI answers per day for the whole site (default 500)
+//   ASSISTANT_TIMEOUT_MS        how long one AI request may take before one retry, then the guide (default 30000)
 // Per-day limits survive restarts when DATABASE_URL is set. Set a monthly budget limit in the
 // OpenAI dashboard as well: it is the cap that cannot be bypassed.
 
 import crypto from 'node:crypto'
-import { handleAssistantRequest, guideAnswerer } from '../server/assistantHandler.js'
-import { aiProvider, createAnswerer } from '../server/aiProvider.js'
-import { getStore } from '../server/store.js'
-import { recordChat } from '../server/usage.js'
+import { handleAssistantRequest, guideAnswerer } from './assistantHandler.js'
+import { aiProvider, createAnswerer } from './aiProvider.js'
+import { getStore } from './store.js'
+import { recordChat } from './usage.js'
+import { clientIp } from './clientIp.js'
+import { createMinuteLimiter } from './rateLimit.js'
 
 const MAX_BODY = 64 * 1024
 const num = (name, fallback) => Number(process.env[name]) || fallback
-const hits = new Map() // per-minute counts in memory (a short-term brake)
+const overMinuteLimit = createMinuteLimiter() // per-minute counts in memory (a short-term brake)
 
 const answerers = {} // one per AI service, created on first use
 const log = (event) => console.log(JSON.stringify({ at: 'assistant', ...event }))
@@ -36,18 +39,24 @@ function answerFor(ip, store) {
   return async (input) => {
     const provider = aiProvider()
     if (!provider) return { ...(await guideAnswerer(input)), from: 'field_guide' }
-    const [mine, all] = await Promise.all([store.get(visitorKey(ip)), store.get('ai:daily')])
-    if (mine >= num('ASSISTANT_VISITOR_DAILY', 60) || all >= num('ASSISTANT_DAILY_LIMIT', 500)) {
-      await store.incr(mine >= num('ASSISTANT_VISITOR_DAILY', 60) ? 'limit:visitor_daily' : 'limit:site_daily')
-      log({ type: 'limit_reached', scope: mine >= num('ASSISTANT_VISITOR_DAILY', 60) ? 'visitor' : 'site' })
+    // Reserve this answer first (an atomic +1), so questions sent at the same moment can't all slip
+    // under the limit; the reservation is handed back if the limit is reached or the AI call fails.
+    const visitor = visitorKey(ip)
+    const day = new Date().toISOString().slice(0, 10) // reserve and hand back on the same day, even around midnight
+    const [mine, all] = await Promise.all([store.incr(visitor, 1, day), store.incr('ai:daily', 1, day)])
+    const release = () => Promise.all([store.incr(visitor, -1, day), store.incr('ai:daily', -1, day)])
+    const visitorOver = mine > num('ASSISTANT_VISITOR_DAILY', 60)
+    if (visitorOver || all > num('ASSISTANT_DAILY_LIMIT', 500)) {
+      await release()
+      await store.incr(visitorOver ? 'limit:visitor_daily' : 'limit:site_daily')
+      log({ type: 'limit_reached', scope: visitorOver ? 'visitor' : 'site' })
       return { ...(await guideAnswerer(input)), from: 'field_guide_limit' }
     }
     answerers[provider] ??= createAnswerer(provider, { onEvent: log })
     try {
-      const reply = await answerers[provider](input)
-      await Promise.all([store.incr(visitorKey(ip)), store.incr('ai:daily')])
-      return reply
+      return await answerers[provider](input)
     } catch (err) {
+      await release()
       // Only the status and error type are logged (e.g. 401 = wrong key, 404/403 = model not allowed).
       // For a rejected request (400) the service's short explanation is logged too; it describes the
       // request settings, not what the applicant typed.
@@ -63,12 +72,8 @@ export default async function handler(req, res, { store = getStore() } = {}) {
   if (req.method !== 'POST') return res.status(405).json({ error: { code: 'method_not_allowed' } })
   if (!String(req.headers['content-type'] || '').startsWith('application/json')) return res.status(415).json({ error: { code: 'json_required' } })
 
-  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown'
-  const minute = Math.floor(Date.now() / 60000)
-  const key = `${ip}:${minute}`
-  hits.set(key, (hits.get(key) || 0) + 1)
-  for (const k of hits.keys()) if (!k.endsWith(`:${minute}`)) hits.delete(k)
-  if (hits.get(key) > num('ASSISTANT_RATE_LIMIT', 20)) return res.status(429).json({ error: { code: 'rate_limited' } })
+  const ip = clientIp(req)
+  if (overMinuteLimit(ip, num('ASSISTANT_RATE_LIMIT', 20))) return res.status(429).json({ error: { code: 'rate_limited' } })
 
   let body = req.body
   if (typeof body === 'string') { try { body = JSON.parse(body) } catch { return res.status(400).json({ error: { code: 'invalid_json' } }) } }

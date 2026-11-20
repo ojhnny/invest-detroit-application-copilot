@@ -15,7 +15,7 @@
 
 import OpenAI from 'openai'
 import { SYSTEM_PROMPT } from './systemPrompt.js'
-import { KNOWLEDGE_TEXT, REPLY_SCHEMA, toChatMessages, fallbackReply, finishReply } from './modelReply.js'
+import { KNOWLEDGE_TEXT, REPLY_SCHEMA, toChatMessages, fallbackReply, finishReply, AI_TIMEOUT_MS } from './modelReply.js'
 
 export const DEFAULT_OPENAI_MODEL = 'gpt-6.1-sol'
 export const FROM = 'openai'
@@ -42,7 +42,7 @@ export function createOpenAIAnswerer({ client, model = process.env.OPENAI_MODEL 
   // Reads OPENAI_API_KEY from the environment. A slow answer gives up after 30 s (one retry), so the
   // chat falls back to the built-in guide instead of hanging.
   // Spaces or line breaks pasted around the key in Render's settings are ignored.
-  const api = client || new OpenAI({ apiKey: String(process.env.OPENAI_API_KEY || '').trim(), baseURL: String(process.env.OPENAI_BASE_URL || '').trim() || undefined, timeout: 30_000, maxRetries: 1 })
+  const api = client || new OpenAI({ apiKey: String(process.env.OPENAI_API_KEY || '').trim(), baseURL: String(process.env.OPENAI_BASE_URL || '').trim() || undefined, timeout: AI_TIMEOUT_MS(), maxRetries: 1 })
   const dropped = new Set() // optional settings this model or gateway rejected
 
   return async ({ modelInput }) => {

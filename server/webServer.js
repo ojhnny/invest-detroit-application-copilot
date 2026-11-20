@@ -1,10 +1,10 @@
 // One Node server for any host that runs a long-lived process (Render, a VM, a container): serves the
-// built website from dist/ and the chat endpoint POST /api/assistant (the same function Vercel
-// runs, so guardrails, the AI service and the field-guide fallback behave identically).
+// built website from dist/ and the chat endpoint POST /api/assistant (server/assistantEndpoint.js:
+// guardrails, the AI service and the field-guide fallback).
 //
 //   npm run build && npm start        # http://localhost:3000 (hosts set PORT themselves)
 //
-// The AI key is read from OPENAI_API_KEY (or ANTHROPIC_API_KEY) by api/assistant.js.
+// The AI key is read from OPENAI_API_KEY (or ANTHROPIC_API_KEY) by server/assistantEndpoint.js.
 //
 // Calls from Invest Detroit's own website: the add-on on investdetroit.com calls /api/* on this
 // server from another web address, which browsers only allow when the server says so (CORS).
@@ -16,7 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import zlib from 'node:zlib'
-import assistant from '../api/assistant.js'
+import assistant from './assistantEndpoint.js'
 import { getStore } from './store.js'
 import { eventsHandler, feedbackHandler, usageHandler } from './usage.js'
 
@@ -28,7 +28,7 @@ const TYPES = {
   '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.pdf': 'application/pdf',
 }
 
-/** Adapts Node's request/response to the small Vercel-style API the functions expect. */
+/** Adapts Node's request/response to the small req/res API the handlers expect (res.status().json()). */
 async function runJson(req, res, fn) {
   const chunks = []
   let size = 0
@@ -46,7 +46,7 @@ async function runJson(req, res, fn) {
     status: (code) => { res.statusCode = code; return out },
     json: (payload) => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(payload)); return out },
   }
-  return fn({ method: req.method, headers: req.headers, body }, out)
+  return fn({ method: req.method, headers: req.headers, body, socket: req.socket }, out)
 }
 
 // Text files are compressed once (Brotli or gzip) and kept in memory: the app's main script
@@ -70,9 +70,10 @@ function encodedBody(file, acceptEncoding) {
 /** Serves a file from dist/, or index.html for unknown paths (the app has one page). */
 function serveStatic(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end() }
-  const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname)
+  let urlPath
+  try { urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname) } catch { res.writeHead(400); return res.end() } // malformed %-escapes
   let file = path.normalize(path.join(DIST, urlPath))
-  if (!file.startsWith(DIST)) { res.writeHead(403); return res.end() } // no ../ escapes
+  if (file !== DIST && !file.startsWith(DIST + path.sep)) { res.writeHead(403); return res.end() } // no ../ escapes (or sibling folders like dist-old)
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html')
   if (!fs.existsSync(file)) {
     // A missing built file is a real 404; any other unknown path gets the app's page.
@@ -92,7 +93,7 @@ function serveStatic(req, res) {
   })
   if (req.method === 'HEAD') return res.end()
   if (packed) return res.end(packed.body)
-  fs.createReadStream(file).pipe(res)
+  fs.createReadStream(file).on('error', () => res.destroy()).pipe(res)
 }
 
 export const DEFAULT_ALLOWED_ORIGINS = ['https://investdetroit.com', 'https://www.investdetroit.com']
@@ -128,15 +129,23 @@ function corsFor(req, res, origins) {
 
 export function createWebServer({ origins = allowedOrigins() } = {}) {
   return http.createServer((req, res) => {
-    const pathname = new URL(req.url, 'http://x').pathname
-    const fail = () => { if (!res.headersSent) { res.writeHead(500); res.end() } }
-    if (pathname.startsWith('/api/') && corsFor(req, res, origins)) return undefined
-    if (pathname === '/api/assistant') return runJson(req, res, (rq, rs) => assistant(rq, rs)).catch(fail)
-    if (pathname === '/api/events') return runJson(req, res, (rq, rs) => eventsHandler(rq, rs, getStore())).catch(fail)
-    if (pathname === '/api/feedback') return runJson(req, res, (rq, rs) => feedbackHandler(rq, rs, getStore())).catch(fail)
-    if (pathname === '/api/usage') return runJson(req, res, (rq, rs) => usageHandler({ ...rq, url: req.url }, rs, getStore())).catch(fail)
-    if (pathname === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('ok') }
-    return serveStatic(req, res)
+    const fail = (err) => {
+      if (err) console.error(JSON.stringify({ at: 'web', error: err?.name || 'error' }))
+      if (!res.headersSent) { res.writeHead(500); res.end() } else res.destroy()
+    }
+    // One bad request must never stop the server for everyone: any error becomes a 500 for that request.
+    try {
+      const pathname = new URL(req.url, 'http://x').pathname
+      if (pathname.startsWith('/api/') && corsFor(req, res, origins)) return undefined
+      if (pathname === '/api/assistant') return runJson(req, res, (rq, rs) => assistant(rq, rs)).catch(fail)
+      if (pathname === '/api/events') return runJson(req, res, (rq, rs) => eventsHandler(rq, rs, getStore())).catch(fail)
+      if (pathname === '/api/feedback') return runJson(req, res, (rq, rs) => feedbackHandler(rq, rs, getStore())).catch(fail)
+      if (pathname === '/api/usage') return runJson(req, res, (rq, rs) => usageHandler({ ...rq, url: req.url }, rs, getStore())).catch(fail)
+      if (pathname === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('ok') }
+      return serveStatic(req, res)
+    } catch (err) {
+      return fail(err)
+    }
   })
 }
 

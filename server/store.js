@@ -62,7 +62,9 @@ function postgresStore(url) {
   let ready = null
   const init = () => (ready ??= pool.query(`CREATE TABLE IF NOT EXISTS copilot_counts (
       day date NOT NULL, key text NOT NULL, count integer NOT NULL DEFAULT 0, PRIMARY KEY (day, key))`)
-    .then(() => pool.query("DELETE FROM copilot_counts WHERE day < CURRENT_DATE - INTERVAL '400 days'")))
+    .then(() => pool.query("DELETE FROM copilot_counts WHERE day < CURRENT_DATE - INTERVAL '400 days'"))
+    // If the database was asleep or unreachable, try again on the next request instead of giving up for good.
+    .catch((err) => { ready = null; throw err }))
   return {
     kind: 'postgres',
     async incr(key, by = 1, day = today()) {

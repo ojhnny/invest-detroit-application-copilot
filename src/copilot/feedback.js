@@ -28,7 +28,7 @@ export function hasMeaningfulInteraction(messages, { minUserMessages = FEEDBACK.
 }
 
 /**
- * Where ratings can be saved from this site: our server (Render/Vercel) at /api/feedback, or
+ * Where ratings can be saved from this site: our server (Render) at /api/feedback, or
  * here.now Site Data. Anywhere else there is nowhere to save them, so the card stays hidden.
  * Outside a browser (tests), here.now's path is assumed.
  */

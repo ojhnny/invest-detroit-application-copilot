@@ -234,7 +234,7 @@ export const SOURCES = {
 
 /**
  * How the assistant gets its answers.
- *   'auto':        on a host listed in `server_hosts` (our Vercel site), ask the server at
+ *   'auto':        on a host listed in `server_hosts` (our Render server), ask the server at
  *                  `endpoint` (an AI service when its key is set, guardrails enforced server-side), and
  *                  fall back to the field guide if the server can't be reached. Elsewhere
  *                  (here.now, which can't run server code), use the field guide.
@@ -242,12 +242,12 @@ export const SOURCES = {
  *   'placeholder': no AI; replies say the assistant isn't connected yet.
  *   'http':        always POST to `endpoint`.
  * Never put an API key here: this file ships to every visitor's browser. The key lives in
- * Vercel's environment variables (OPENAI_API_KEY), read only by api/assistant.js.
+ * Render's environment variables (OPENAI_API_KEY), read only by server/assistantEndpoint.js.
  */
 export const ASSISTANT = {
   mode: 'auto',
   endpoint: '/api/assistant',
-  server_hosts: ['.vercel.app', '.onrender.com', 'localhost'], // Vercel and Render run the server; add a custom domain here if one is used
+  server_hosts: ['.onrender.com', 'localhost'], // Render runs the server; add a custom domain here if one is used
   history_window: 6, // most recent messages sent with each question, not the whole chat
 }
 
@@ -259,7 +259,7 @@ export const ASSISTANT = {
  */
 export const FEEDBACK = {
   endpoint: './.herenow/data/assistant_feedback',
-  // here.now saves ratings in Site Data; our own server (Render/Vercel) saves them at
+  // here.now saves ratings in Site Data; our own server (Render) saves them at
   // server_endpoint; anywhere else the rating card stays hidden.
   hosts: ['.here.now'],
   server_endpoint: '/api/feedback',

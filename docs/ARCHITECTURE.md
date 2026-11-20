@@ -155,7 +155,7 @@ A plain object of answers keyed by **our** field ids: strings for text, `"Yes"`/
 The live page is WordPress with the intake form embedded from FormAssembly (form `4907942`). `npm run build` produces the add-on, `dist/embed/copilot.js`, from `src/embed/main.jsx`, and the Render server serves it at `/embed/copilot.js`.
 
 ```html
-<script src="https://<server>/embed/copilot.js" defer data-summary-field="tfa_1234" data-launcher-bottom="84px"></script>
+<script src="https://<server>/embed/copilot.js" async data-summary-field="tfa_1234" data-launcher-bottom="84px"></script>
 ```
 
 **What it adds to the FormAssembly form,** all drawn by one React tree (`src/embed/EmbeddedApps.jsx`) into small shadow-root "hosts" placed around the form:
@@ -245,14 +245,14 @@ Not built. ("Talk to a person" was removed from the chat at the team's request.)
   - An axe check (WCAG 2.1 A/AA plus best practices) is clean on desktop and phone.
   - The banner text is dark on yellow, links are `#7a5000`, the heading order is fixed, and the page has labeled landmarks.
 
-## The AI service on Render or Vercel (OpenAI; Claude optional)
+## The AI service on Render (OpenAI; Claude optional)
 
-`api/assistant.js` (run by Vercel directly, or by `server/webServer.js` on Render) sends every question through `handleAssistantRequest()`:
+`server/assistantEndpoint.js` (served by `server/webServer.js` on Render) sends every question through `handleAssistantRequest()`:
 - **With `OPENAI_API_KEY` set:** allowed questions go to OpenAI (`server/openaiAnswerer.js`, Responses API). It uses `gpt-6.1-sol` (`OPENAI_MODEL`) at low reasoning effort, a strict JSON-schema reply (answer, source ids, needs_staff, in_scope), `store: false`, and the instructions plus the knowledge base from `server/knowledgeContext.js` as one cacheable prefix.
 - **With only `ANTHROPIC_API_KEY` set:** Claude answers instead (`server/claudeAnswerer.js`). `server/aiProvider.js` makes the choice; the reply format and checks are shared (`server/modelReply.js`).
 - **Without a key, or if the AI service fails:** the field guide answers, and the failure is counted by HTTP status (`ai_error:<status>`).
 
-The browser uses `ASSISTANT.mode = 'auto'`. On a host in `server_hosts` (for example `.vercel.app`) it calls `/api/assistant` and falls back to the field guide on any failure; elsewhere, including here.now and the add-on, it uses the field guide. The rating card shows only on here.now, where Site Data exists. See `docs/SETUP.md` for the key steps.
+The browser uses `ASSISTANT.mode = 'auto'`. On a host in `server_hosts` (for example `.onrender.com`) it calls `/api/assistant` and falls back to the field guide on any failure; elsewhere, including here.now and the add-on, it uses the field guide. The rating card shows only on here.now, where Site Data exists. See `docs/SETUP.md` for the key steps.
 
 ## Chat answers today: the field guide
 

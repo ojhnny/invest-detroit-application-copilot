@@ -11,6 +11,8 @@
 
 import crypto from 'node:crypto'
 import { isInternalKey } from './store.js'
+import { clientIp } from './clientIp.js'
+import { createMinuteLimiter } from './rateLimit.js'
 import { FIELDS_BY_ID, SECTIONS } from '../src/copilot/formDefinition.js'
 import { SOURCES } from '../src/copilot/config.js'
 
@@ -43,8 +45,15 @@ export async function recordChat(store, { body, out }) {
 
 const json = (res, status, payload) => res.status(status).json(payload)
 
+// Short-term brakes so a script can't inflate the counts or flood the database. Generous on
+// purpose: the page sends events at most every 5 seconds per tab, and an office can share one IP.
+const num = (name, fallback) => Number(process.env[name]) || fallback
+const overEvents = createMinuteLimiter()
+const overFeedback = createMinuteLimiter()
+
 export async function eventsHandler(req, res, store) {
   if (req.method !== 'POST') return json(res, 405, { error: { code: 'method_not_allowed' } })
+  if (overEvents(clientIp(req), num('EVENTS_RATE_LIMIT', 120))) return json(res, 429, { error: { code: 'rate_limited' } })
   let body = req.body
   if (typeof body === 'string') { try { body = JSON.parse(body) } catch { return json(res, 400, { error: { code: 'invalid_json' } }) } }
   const events = Array.isArray(body?.events) ? body.events.slice(0, 40) : []
@@ -59,6 +68,7 @@ export async function eventsHandler(req, res, store) {
 
 export async function feedbackHandler(req, res, store) {
   if (req.method !== 'POST') return json(res, 405, { error: { code: 'method_not_allowed' } })
+  if (overFeedback(clientIp(req), num('FEEDBACK_RATE_LIMIT', 20))) return json(res, 429, { error: { code: 'rate_limited' } })
   let body = req.body
   if (typeof body === 'string') { try { body = JSON.parse(body) } catch { return json(res, 400, { error: { code: 'invalid_json' } }) } }
   const rating = Number(body?.rating)

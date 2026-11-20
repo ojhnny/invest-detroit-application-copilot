@@ -8,7 +8,7 @@ import { NO_MATCH } from '../src/copilot/guideTransport.js'
 import { httpTransport, withFallback, transportFromConfig, createAssistant } from '../src/copilot/assistant.js'
 import { guideTransport } from '../src/copilot/guideTransport.js'
 import { createFeedbackClient } from '../src/copilot/feedback.js'
-import handler from '../api/assistant.js'
+import handler from '../server/assistantEndpoint.js'
 
 // A stand-in for the Anthropic client: records each request and returns a canned response.
 function fakeClient(response) {
@@ -88,7 +88,7 @@ test('the source list in the schema matches the sources the site knows', () => {
   assert.equal(REPLY_SCHEMA.additionalProperties, false)
 })
 
-// ---- The Vercel function ------------------------------------------------------------------
+// ---- The chat endpoint ---------------------------------------------------------------------
 
 function fakeRes() {
   const res = { statusCode: 0, headers: {}, payload: null }
@@ -98,7 +98,7 @@ function fakeRes() {
   return res
 }
 
-test('without a key, the Vercel function answers from the field guide', async () => {
+test('without a key, the chat endpoint answers from the field guide', async () => {
   const saved = process.env.ANTHROPIC_API_KEY
   delete process.env.ANTHROPIC_API_KEY
   const res = fakeRes()
@@ -110,7 +110,7 @@ test('without a key, the Vercel function answers from the field guide', async ()
   if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved
 })
 
-test('the Vercel function rejects the wrong method, content type and oversized bodies', async () => {
+test('the chat endpoint rejects the wrong method, content type and oversized bodies', async () => {
   let res = fakeRes(); await handler({ method: 'GET', headers: {} }, res); assert.equal(res.statusCode, 405)
   res = fakeRes(); await handler({ method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'hi' }, res); assert.equal(res.statusCode, 415)
   res = fakeRes(); await handler({ method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': '2.2.2.2' }, body: body('x'.repeat(70000)) }, res); assert.equal(res.statusCode, 413)
@@ -126,10 +126,10 @@ test('the browser reads the server\'s reply, including fixed guardrail replies',
   assert.equal(g.kind, 'out_of_scope')
 })
 
-test('on Vercel the chat asks the server; if it fails, it answers from the guide; elsewhere it uses the guide', async () => {
-  const cfg = { mode: 'auto', endpoint: '/api/assistant', server_hosts: ['.vercel.app'] }
+test('on our server the chat asks the server; if it fails, it answers from the guide; elsewhere it uses the guide', async () => {
+  const cfg = { mode: 'auto', endpoint: '/api/assistant', server_hosts: ['.onrender.com'] }
   assert.equal(transportFromConfig(cfg, { hostname: 'invest-detroit-support.rossbusinesstech.here.now' }), guideTransport)
-  assert.notEqual(transportFromConfig(cfg, { hostname: 'invest-detroit.vercel.app' }), guideTransport)
+  assert.notEqual(transportFromConfig(cfg, { hostname: 'invest-detroit.onrender.com' }), guideTransport)
   // An HTML page (what a static host returns for an unknown path) or an error falls back to the guide.
   const html = httpTransport('/api/assistant', async () => ({ ok: true, json: async () => { throw new SyntaxError('html') } }))
   const { reply } = await createAssistant({ transport: withFallback(html, guideTransport) }).ask({ message: 'What does AMI mean?' })
