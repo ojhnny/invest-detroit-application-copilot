@@ -7,7 +7,7 @@ subtitle: "A guide for Invest Detroit's web, IT and data teams · Invest Detroit
 
 This guide explains, in plain words, everything that runs behind the Application Copilot: what each part does, what it depends on, where it is limited, and what your team should check or change before using the code. It is written for people who run websites and data, not for programmers, but each section says where the code lives so a developer can find it.
 
-**The honest summary:** the copilot works and has been tested on a practice copy of your form with made-up data. It has **not** been run on your real page, with your real accounts, or with real applicants. Sections 8 to 11 list what that means in practice.
+**The honest summary:** the copilot works and has been tested on a practice copy of your form with made-up data. We also loaded the add-on onto your live Need Support page in a test browser (only on our screen, nothing submitted) to check that it fits your real form, theme and FormAssembly scripts. It has **not** been installed on your page, run with your real accounts, or used by real applicants. Sections 8 to 11 list what that means in practice.
 
 | If you only have five minutes, read | Page section |
 |---|---|
@@ -111,7 +111,7 @@ Code: `src/embed/`. It is built into one file, `copilot.js`.
 
 - **One script tag** switches it on. Options are added as `data-` settings on that tag: language and appearance (`data-theme`), an intro panel, save and resume, the hidden staff-summary field (`data-summary-field`), the service address (`data-server`), and others (`docs/FORMASSEMBLY-INTEGRATION.md`).
 - **It reads your form's own field codes** (FormAssembly names them `tfa_` plus a number) and option codes. These were copied from form 4907942. If the form is edited, a field is added, or the form is copied to a new form, **the mapping must be checked**: the review rules look fields up by those codes.
-- **It lives in its own box** (a shadow root) so it neither takes on your site's styling nor changes it.
+- **Its own screens live in their own box** (a shadow root), so they neither take on your site's styling nor change it. Only the opt-in `data-theme="copilot"` restyles the form itself, to look like the demo: it overrides FormAssembly's theme for this one form, lays questions out side by side, shows "select all that apply" questions as checkboxes (FormAssembly's own list stays underneath, in sync), and undoes your site's 80% shrink of the form.
 - **It is built to fail safely.** If anything goes wrong, it removes itself and the form works as before. It never touches the SSN field and never opens uploaded files.
 - **The Submit button.** The review can lock Submit until "Must fix" items are fixed. The lock is only in the browser, so someone with technical skill can bypass it. Treat the review as help, not as a gate (section 10).
 
@@ -125,6 +125,7 @@ Code: `src/embed/`. It is built into one file, `copilot.js`.
 | AI connection | `server/aiProvider.js`, `openaiAnswerer.js`, `claudeAnswerer.js` | Picks OpenAI (or Claude) from which key is set |
 | Instructions | `server/systemPrompt.js`, `knowledgeContext.js` | What the AI is told, and the facts it gets |
 | Counts and limits | `server/store.js`, `server/usage.js` | Memory or Postgres; export, webhook, ratings |
+| Visitor limits | `server/clientIp.js`, `server/rateLimit.js` | Finds the visitor's address (Cloudflare's header on Render) and keeps the per-minute brakes |
 | Checks | `tests/`, `tools/check-chat.mjs`, `tools/run-test-set.mjs` | 213 automatic tests, 8 live checks, the 46-question test set |
 
 **Addresses the service offers:** `POST /api/assistant` (chat), `POST /api/events` (usage counts from the add-on), `POST /api/feedback` (ratings), `GET /api/usage` (export, needs the token), `GET /healthz` (health check, answers "ok"). It serves the demo page and the add-on file at `/embed/copilot.js`.
@@ -163,7 +164,8 @@ This is the most important section for handoff. Everything in the first table is
 These are not settings. A developer must change them in the files.
 
 - **Contact details** (info@investdetroit.com, 313.259.6368) are written into the knowledge base and messages. Staff names in the demo are placeholders.
-- **The form mapping:** field and option codes from form 4907942 (`src/copilot/adapters/formAssemblyAdapter.js` and the form definition).
+- **The form mapping:** field and option codes from form 4907942 (`src/copilot/adapters/formAssemblyMap.js` and the form definition).
+- **What the demo look works around on your page** (`src/embed/theme.css`, `src/embed/main.jsx`): your WordPress theme's 80% shrink of the form box, FormAssembly's `!important` theme styles and fixed box widths, and the way FormAssembly's script changes the form's page elements. If your site theme or the FormAssembly theme changes, check the form again with `data-theme="copilot"` on (the test page `/embed-test/` copies these quirks).
 - **The 28 sources and all facts** (`src/copilot/config.js`, `knowledge.js`, `fieldGuide.js`).
 - **The 17 review rules** and their thresholds (for example the loan-to-budget check) in `src/copilot/review.js`. Invest Detroit's policy people should read them.
 - **Languages:** English, Spanish, Arabic, Bengali and Chinese. Every on-screen string must be translated; a test enforces this when text is added.
@@ -173,7 +175,7 @@ These are not settings. A developer must change them in the files.
 # 9. Limitations: what it cannot do yet
 
 1. **Runs on a class AI account.** It ends with the sprint. Until Invest Detroit adds its own key, the chat uses the built-in English answers.
-2. **Not tested on your real page.** We tested on a practice copy with made-up data. Nothing has been verified on your actual WordPress page, theme or security plugins.
+2. **Not installed on your real page.** We tested on a practice copy with made-up data, and loaded the add-on onto your live page in a test browser to check the layout, the checkboxes, the progress bar and the review (nothing was submitted). It has not been installed there, and your staging setup, security plugins and caching have not been tried. The site's translation menu (GTranslate) and the spam check (ALTCHA) at Submit still need a real test.
 3. **The live AI has not been scored.** The 46/46 result is for the built-in answers. The live-AI score is the next measurement. Someone needs to run `OPENAI_API_KEY=… OPENAI_BASE_URL=… OPENAI_MODEL=… node tools/run-test-set.mjs --ai` from a computer that can reach the AI provider.
 4. **Real benefit is not yet measured.** We measured that the original form caught 2 of 10 common mistakes and the copilot caught 10 of 10. We have **not** measured time saved or fewer follow-up emails. That needs a pilot.
 5. **No file reading.** Uploaded files are checked only for size and emptiness (any format is accepted). This is deliberate, for privacy.
@@ -194,9 +196,9 @@ Ordered roughly by importance.
 
 **2. Text typed in the chat goes to an AI company.** The browser hides numbers that look like SSNs, but that is pattern matching. If an applicant types an account number, a medical detail or a phone number into the chat, it will reach the provider. We ask the provider not to keep conversations (`store: false`), but your agreement and the provider's retention rules decide what actually happens. Have your legal and IT teams decide whether that is acceptable, and say so in the chat's introduction if needed.
 
-**3. The visitor limit can be faked.** Per-visitor limits trust the `X-Forwarded-For` header (the visitor's address as reported by a proxy). Someone who sets that header themselves can look like many visitors and skip the per-visitor limit. The **site-wide daily cap still holds**, and so does your provider's monthly budget cap. If you host behind your own proxy, configure which proxy to trust. The per-minute brake is kept in memory, so it resets on restart and is separate on each server copy.
+**3. Where the visitor limit gets its address.** Per-visitor limits need the visitor's address. On Render, traffic passes through Cloudflare, and the service uses the address Cloudflare reports (`CF-Connecting-IP`), which visitors can't fake (`server/clientIp.js`). On any other host, it falls back to the first `X-Forwarded-For` entry, which a visitor *can* set themselves to look like many visitors. If you move hosts, point `clientIp.js` at the header your host or proxy sets. The **site-wide daily cap** and your provider's monthly budget cap hold either way. The per-minute brakes are kept in memory, so they reset on restart and are separate on each server copy.
 
-**4. Nothing logs in to the counting endpoints.** `/api/events` and `/api/feedback` accept only allow-listed event types, and the browser check restricts which websites may call them, but that check only stops *browsers*. A script can still post fake counts. Treat usage counts as approximate, not audit-grade.
+**4. Nothing logs in to the counting endpoints.** `/api/events` and `/api/feedback` accept only allow-listed event types, the browser check restricts which websites may call them, and each visitor is limited per minute (`EVENTS_RATE_LIMIT`, `FEEDBACK_RATE_LIMIT`). That slows a script down but doesn't stop one from posting fake counts. Treat usage counts as approximate, not audit-grade.
 
 **5. Cost is an estimate, and runaway use is possible.** We estimate about $0.01 to $0.04 per question, about $5 to $20 a month at an assumed 500 questions, plus hosting (about $7 for a service that stays awake) and optional Postgres (about $6): **about $20 to $35 a month in total**. These come from third-party price lists, because we could not open the provider's own pricing page. The 500 questions a month is our assumption, not yours. Set the daily cap and a monthly budget limit on the provider's side before launch, and look at real usage after a week.
 
@@ -251,6 +253,7 @@ Ordered roughly by importance.
 - [ ] A Postgres database, if you want counts to survive restarts, and a way to get counts into your system (section 5)
 - [ ] A copy of `copilot.js` reviewed by your web team and hosted by you
 - [ ] The hidden summary field added in FormAssembly and `data-summary-field` set
+- [ ] The script tag added with `async` (not `defer`), plus `data-theme="copilot"` if you want the demo's look (checkboxes, side-by-side questions)
 - [ ] The form's field codes checked against the mapping; the tests re-run
 - [ ] A practice page tested on your real theme and plugins, on a phone as well as a computer
 - [ ] Legal and IT sign-off on chat text going to the AI provider

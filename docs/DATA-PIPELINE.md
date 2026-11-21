@@ -9,6 +9,8 @@ For Invest Detroit's data team. The copilot has **no dashboard of its own**: Inv
 
 The usage counts are anonymous **counts by day and category**. They never include an answer, a chat message, a note, a name, a file or an IP address. Each one is a **category**, an **item** and a **number**, for example `review_issue` / `loan_gt_budget` / `3`.
 
+Treat them as **approximate**: the counting addresses don't require a login. The server only accepts known categories and limits how often one visitor can send counts and ratings (`EVENTS_RATE_LIMIT`, `FEEDBACK_RATE_LIMIT`, see [SETUP.md](SETUP.md)), which slows down fake counts but can't rule them out.
+
 ## Four ways to collect the usage counts
 
 Pick whichever fits your pipeline. They can be combined, and all are off until you turn them on, except the first.

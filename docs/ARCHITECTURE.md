@@ -73,6 +73,10 @@ src/
   embed/                      the add-on script for the live page (→ dist/embed/copilot.js)
     main.jsx                  finds the form, mounts screens in shadow roots, fail-safe
     EmbeddedApps.jsx
+    theme.css                 opt-in demo look for the FormAssembly form (data-theme="copilot")
+    multiCheckboxes.js        "select all that apply" lists shown as checkboxes, kept in sync
+    headerOffset.js           keeps the progress bar just below the site's fixed header
+    intro.css, extras.css     styles for the intro panel and add-on extras
   components/                 reusable screens (React)
     copilot.css               styles for the review panel and chat (shared with the add-on)
     LanguagePicker.jsx, I18nProvider.jsx, i18nContext.js, RichText.jsx   language support
@@ -85,10 +89,15 @@ src/
     sampleApplicant.js        fictional demo data
     goToField.js
   App.jsx                     the replica page
-server/                       reference backend (Node built-ins only; NOT deployed on here.now)
+server/                       the service (runs on Render; not on here.now)
+  webServer.js                serves dist/ and /api/*, CORS for listed sites, /healthz (npm start)
+  assistantEndpoint.js        POST /api/assistant: rate limit, daily caps, AI or guide
   assistantHandler.js         validate -> redact -> guardrails -> answer -> output check
-  httpServer.js               POST /api/assistant wrapper: JSON only, origin allowlist, rate limit
-  systemPrompt.js             fixed instructions for a future model, with a leak canary
+  aiProvider.js, openaiAnswerer.js, claudeAnswerer.js, modelReply.js   the AI service
+  systemPrompt.js, knowledgeContext.js   fixed instructions (with a leak canary) and the knowledge base
+  store.js, usage.js          counts (memory or Postgres), /api/events, /api/feedback, /api/usage
+  clientIp.js, rateLimit.js   visitor address (Cloudflare's header on Render) and per-minute brakes
+  httpServer.js               minimal reference wrapper for the chat endpoint (local testing only)
 public/.herenow/data.json     here.now Site Data collection for chat ratings
 tests/                        node --test, no extra packages
 tools/build-embed-test-page.mjs  generates public/embed-test/index.html
@@ -161,7 +170,7 @@ The live page is WordPress with the intake form embedded from FormAssembly (form
 **What it adds to the FormAssembly form,** all drawn by one React tree (`src/embed/EmbeddedApps.jsx`) into small shadow-root "hosts" placed around the form:
 - the review panel above `#submit_button`, with the Submit lock (the button is disabled, and a capturing `submit` listener backs it up);
 - the chat in the corner;
-- a sticky progress bar at the top of the form;
+- a sticky progress bar at the top of the form, kept just below the site's fixed header (`headerOffset.js`; `data-progress-top` overrides);
 - per question (found by FormAssembly's `#tfa_N-D` container and `#tfa_N-L` label ids):
   - a **?** button inside the label;
   - an upload tip before file inputs;
@@ -175,7 +184,12 @@ It reuses the demo site's components (`ReviewPanel`, `ChatAssistant`, `FormProgr
 
 **Opt-in options that make the live form look and work like the demo site:**
 - `data-intro="true"`: `HowItWorks` and `BeforeYouStart`, drawn above `.wFormContainer`.
-- `data-theme="copilot"`: `src/embed/theme.css`, page styles scoped to the form through the class `idc-theme`.
+- `data-theme="copilot"`: `src/embed/theme.css`, page styles scoped to the form through the class `idc-theme`. On the live page it has to:
+  - override FormAssembly's `!important` theme rules (section titles, labels, text blocks);
+  - beat FormAssembly's per-field `#tfa_N { width: … !important }` rules, with an inline `!important` width;
+  - undo investdetroit.com's `.wFormContainer { transform: scale(0.8) }` (class `idc-theme-box`), which also breaks `position: sticky`;
+  - lay questions out at the demo's widths (`idc-row`, `idc-w-half`…), never overriding FormAssembly's `.offstate { display: none !important }` for hidden follow-ups;
+  - show the four "select all that apply" `<select multiple>` lists as checkboxes (`multiCheckboxes.js`). The list stays in the page, visually hidden, and is updated with `change` events, so FormAssembly's submit, required check and conditional logic keep working.
 - `data-drafts="true"`: save & resume with `src/prototype/draft.js`. Answers are restored through the adapter's `restore()`, matching choices by FormAssembly option code.
 - `data-load-font="true"`: loads the demo's fonts from Google Fonts.
 
@@ -185,12 +199,15 @@ It reuses the demo site's components (`ReviewPanel`, `ChatAssistant`, `FormProgr
 
 **Fail-safe:** any error removes every host and unlocks Submit.
 
+**FormAssembly's script changes the page.** wForms (via base2) replaces `querySelectorAll` on the form and every field with its own version, whose results can't be spread or indexed (only `.length`, `.item()` and `.forEach` work). Code that walks the live form must use `.forEach`, or `Element.prototype.querySelectorAll.call(...)` for a normal list.
+
 **Translated pages:** the live site offers Spanish, Arabic and Bengali. The adapter reads choices by their hidden option codes (`tfa_373`), not their visible text, so reviews still work on a translated page.
 
 **Test page:** `/embed-test/` (generated by `node tools/build-embed-test-page.mjs`) is a plain copy of the live form's structure with the add-on loaded. It includes a hidden staff-summary field, turns on the fill helpers, and shows the summary after Submit. It acts out:
 - the form arriving after the page;
 - the form's own submit handler;
-- a "Simulate Spanish translation" button.
+- a "Simulate Spanish translation" button;
+- the live page's quirks: the 80% scale, FormAssembly's `!important` theme and per-field widths, `.offstate` show/hide for the ethnicity count boxes, and wForms' replaced `querySelectorAll`.
 
 Checked there at phone and desktop sizes, from a different web address than the server (as on the real site):
 - the ? buttons and the chat;
@@ -203,7 +220,7 @@ Checked there at phone and desktop sizes, from a different web address than the 
 - chat, ratings and counts reaching the server cross-site;
 - the counts reaching the export, the webhook and the page events (see [DATA-PIPELINE.md](DATA-PIPELINE.md)).
 
-The test page is generated from our own field map, so the **final check must happen on the real page** (the guide's step 6).
+The test page is generated from our own field map, so the **final check must happen on the real page** (the guide's step 6). In November 2026 we also loaded the add-on onto the live page in a test browser (injected locally, nothing submitted) and checked the theme, checkboxes, follow-up boxes, progress bar and review there.
 
 **Keep the map current.** If Invest Detroit edits the form, compare the new page source with `formAssemblyMap.js` and `formDefinition.js`, update `PROGRAM.form_version`, regenerate the test page and run `npm test`.
 
