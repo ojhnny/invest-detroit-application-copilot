@@ -17,6 +17,10 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const STAFF_CODES = ['tfa_797', 'tfa_798', 'tfa_799', 'tfa_594']
 const codesFor = (f, e) => e.codes || (f.id === 're_team_contact' ? STAFF_CODES : [])
 const req = (f) => (f.required ? ' reqMark' : '')
+// FormAssembly shows each "how many owners are…" box only once its background is picked (its
+// conditional logic hides the rest with the class "offstate"). The test page copies that.
+const ethCounts = SECTIONS.flatMap((s) => s.fields || []).filter((f) => f.id.startsWith('eth_count_'))
+const CONDITIONS = ethCounts.map((f, i) => ({ box: `${FORM_ASSEMBLY_MAP[f.id].id}-D`, trigger: FORM_ASSEMBLY_MAP.ethnicities.id, code: FORM_ASSEMBLY_MAP.ethnicities.codes[i] }))
 
 function control(f) {
   const e = FORM_ASSEMBLY_MAP[f.id]
@@ -140,6 +144,7 @@ ${sections}
     slot.innerHTML = '';
     slot.appendChild(document.getElementById('form-template').content.cloneNode(true));
     testStatus.textContent = 'Form loaded.';
+    liveSiteQuirks(document.getElementById('${FORM_ASSEMBLY_FORM_ID}'));
     document.getElementById('${FORM_ASSEMBLY_FORM_ID}').addEventListener('submit', function (e) {
       e.preventDefault();
       var done = document.createElement('p');
@@ -152,6 +157,40 @@ ${sections}
       this.querySelector('.actions').after(done, summary);
     });
   }, 800);
+
+  // What the real page does that a plain copy wouldn't (all found on investdetroit.com, Nov 2026):
+  //  - the WordPress theme shrinks FormAssembly's box: .wFormContainer { transform: scale(0.8) };
+  //  - FormAssembly's theme uses !important for section titles, label text and text blocks, and
+  //    gives every box a fixed width with an id rule (#tfa_18 { width: 240px !important });
+  //  - hidden follow-up questions use .offstate { display: none !important };
+  //  - wForms replaces querySelectorAll on the form and its fields with a version whose results
+  //    can't be spread or indexed (only .length, .item() and .forEach work).
+  var CONDITIONS = ${JSON.stringify(CONDITIONS)};
+  function liveSiteQuirks(form) {
+    var css = '.wFormContainer{transform:scale(0.8);margin:-60px auto auto}' +
+      '.wFormContainer fieldset legend{font-weight:700;font-size:14.5px!important;color:#fcaf17!important;font-family:"Arial"!important}' +
+      '.oneField .label span,.wForm .label.preField{color:#515e59!important;font-family:"Arial"!important}' +
+      '.htmlSection .htmlContent,.htmlSection .htmlContent span{color:#515e59!important;font-family:"Arial"!important;font-size:100%!important}' +
+      '.offstate{display:none!important}';
+    Element.prototype.querySelectorAll.call(form, 'input[type=text], textarea').forEach(function (el) { css += '#' + el.id + '{width:240px!important}'; });
+    var style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+    CONDITIONS.forEach(function (c) { var box = document.getElementById(c.box); if (box) box.classList.add('offstate'); });
+    var trigger = CONDITIONS[0] && document.getElementById(CONDITIONS[0].trigger);
+    if (trigger) trigger.addEventListener('change', function () {
+      CONDITIONS.forEach(function (c) {
+        var opt = document.getElementById(c.code), box = document.getElementById(c.box);
+        if (box) box.classList.toggle('offstate', !(opt && opt.selected));
+      });
+    });
+    function patch(el) {
+      el.querySelectorAll = function (sel) {
+        var list = Element.prototype.querySelectorAll.call(this, sel);
+        return { length: list.length, item: function (i) { return list.item(i); }, forEach: function (fn, self) { list.forEach(fn, self); } };
+      };
+    }
+    patch(form);
+    Element.prototype.querySelectorAll.call(form, '*').forEach(patch);
+  }
 
   function fire(el) { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }
   document.getElementById('test-fill').addEventListener('click', function () {
@@ -175,7 +214,7 @@ ${sections}
     testStatus.textContent = 'Answer labels translated to Spanish (like the site\\'s translation menu). Reviews should still work.';
   });
 </script>
-<script src="/embed/copilot.js" async data-launcher-bottom="84px" data-summary-field="tfa_copilot_summary" data-fill-helpers="true" data-progress-top="55px" data-intro="true" data-theme="copilot" data-drafts="true"></script>
+<script src="/embed/copilot.js" async data-launcher-bottom="84px" data-summary-field="tfa_copilot_summary" data-fill-helpers="true" data-intro="true" data-theme="copilot" data-drafts="true"></script>
 </body>
 </html>
 `

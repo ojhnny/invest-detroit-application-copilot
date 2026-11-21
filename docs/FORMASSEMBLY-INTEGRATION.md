@@ -36,12 +36,13 @@ The copilot is **one script tag** plus a small server. It works on top of the ex
 | Notes as questions are answered (loan larger than budget, ZIP/state mismatch…) | ✅ Automatic | Under the question, once the applicant leaves it |
 | "About $1.45 million", 10% equity math | ✅ Automatic | Under the money and equity questions. The answer itself isn't changed. |
 | Upload tips; empty or oversized file checks | ✅ Automatic | Tip before each required upload. Any format is accepted. Only the file's name and size are read, never its contents. |
-| Progress bar with section chips | ✅ Automatic | Sticks to the top of the form; `data-progress-top` makes room for a sticky site header |
+| Progress bar with section chips | ✅ Automatic | Sticks just below the site's fixed header (found automatically; `data-progress-top` overrides it) |
 | Five languages (incl. Arabic right to left) | ✅ Automatic | Follows the page's language; answers are read by FormAssembly's option codes, so translated pages still work |
 | Star ratings and usage counts | ✅ Automatic | Counts only, for Invest Detroit's own system: export, webhook or page events ([DATA-PIPELINE.md](DATA-PIPELINE.md)) |
 | "Business address is the same as my home address"; state from a Michigan ZIP | ⚙️ Opt-in | `data-fill-helpers="true"`. These fill in answers, so they're off unless turned on. The business address boxes are locked while the box is ticked, as on the demo. |
 | "How it works" ("Which form is right for you?" cards, the 4 steps) and the "Before you start" checklist | ⚙️ Opt-in | `data-intro="true"`: drawn above the form exactly as on the demo site, in all 5 languages |
-| The demo form's look (section headings with yellow lines, larger boxes, "$" in money boxes, red outline on questions to fix, yellow Submit button) | ⚙️ Opt-in | `data-theme="copilot"`: restyles only this form. The "$" is display-only; the answer stays a plain number. Add `data-load-font="true"` if the site doesn't already use the Lato font. |
+| The demo form's look (section headings with yellow lines, questions side by side at the demo's widths, larger boxes, "$" in money boxes, red outline on questions to fix, yellow Submit button) | ⚙️ Opt-in | `data-theme="copilot"`: restyles only this form, over FormAssembly's own theme. It also shows the form at full size (investdetroit.com currently shrinks it to 80%). The "$" is display-only; the answer stays a plain number. Add `data-load-font="true"` if the site doesn't already use the Lato font. |
+| "Select all that apply" questions as checkboxes (other lenders, community partners, ethnic backgrounds, genders) | ⚙️ Opt-in, with `data-theme="copilot"` | FormAssembly shows these as Ctrl-click lists. The add-on draws checkboxes and keeps FormAssembly's list (hidden) in sync, so submitting, required checks and the follow-up "how many owners" boxes work as before. The Ctrl-click hint becomes "Select all that apply." |
 | Save & resume ("Continue where I left off") | ⚙️ Opt-in, or a FormAssembly setting | `data-drafts="true"`: the demo's on-device drafts. Or FormAssembly's own **Save & Resume**, which works across devices (step 3). |
 | "What happens next" after Submit | ⚙️ FormAssembly setting | Paste the ready-made message below into the form's thank-you page (step 3) |
 | Money boxes adding commas as you type | ❌ Not carried over | Their money boxes only accept numbers, so commas could block Submit. The "About $…" note gives the same reassurance. |
@@ -137,11 +138,11 @@ It never includes an SSN. It's sent only inside the application, to FormAssembly
 | Attribute | What it does |
 |---|---|
 | `data-intro="true"` | "How it works" ("Which form is right for you?", the 4 steps) and "Before you start" above the form, as on the demo. "Start the form" scrolls to the form. |
-| `data-theme="copilot"` | Restyles this form to look like the demo: section headings with yellow lines, larger boxes, yellow Submit. Only this form is affected. |
+| `data-theme="copilot"` | Restyles this form to look like the demo: section headings with yellow lines, questions side by side, checkboxes for "select all that apply", larger boxes, yellow Submit. Only this form is affected. |
 | `data-load-font="true"` | Loads the demo's fonts (Lato, plus Arabic and Bengali) from Google Fonts, if the site doesn't already use them |
 | `data-drafts="true"` | Save & resume on the applicant's device, like the demo |
 | `data-save-resume="true"` | Use with FormAssembly's own Save & Resume: the intro then says "You can save and finish later" |
-| `data-progress-top="80px"` | Room for a sticky site header above the progress bar |
+| `data-progress-top="80px"` | Fixed space above the progress bar. Usually not needed: by default it sits just below the site's fixed header, found automatically |
 | `data-fill-helpers="true"` | Turns on "same as home address" and state-from-ZIP |
 | `data-locale="es"` | Fixes the language; otherwise it follows the page's `<html lang>` |
 | `data-server="https://…"` | Our server's address, if `copilot.js` is hosted somewhere else |

@@ -7,7 +7,7 @@
 //   <script src="https://<server>/embed/copilot.js" async
 //           data-summary-field="tfa_1234"                (recommended: hidden field for the staff summary)
 //           data-launcher-bottom="84px"                  (optional: lift the chat button)
-//           data-progress-top="80px"                     (optional: room for a sticky site header)
+//           data-progress-top="80px"                     (optional: fixed space above the progress bar; default: below the site header, found automatically)
 //           data-fill-helpers="true"                     (optional: "same as home address" box, state from ZIP)
 //           data-intro="true"                            (optional: "How it works" + "Before you start" above the form)
 //           data-theme="copilot"                         (optional: restyle the form to look like the demo site)
@@ -49,6 +49,8 @@ import baseCss from '../components/copilot.css?inline'
 import extrasCss from './extras.css?inline'
 import introCss from './intro.css?inline'
 import themeCss from './theme.css?inline'
+import { enhanceMultiSelect } from './multiCheckboxes.js'
+import { followHeader } from './headerOffset.js'
 import { clearDraft } from '../prototype/draft.js'
 import { FailSafe, EmbeddedApp, PageLanguage } from './EmbeddedApps.jsx'
 import { localeFromLang } from '../copilot/i18n/index.js'
@@ -77,7 +79,7 @@ const endpoint = (attr, path) => (attr === 'none' ? null : attr || (server ? ser
 const SETTINGS = {
   autoMount: data.autoMount !== 'false',
   launcherBottom: data.launcherBottom || null,
-  progressTop: data.progressTop || '0px',
+  progressTop: data.progressTop || null, // null: stay just below the site's fixed header, found automatically
   assistantEndpoint: endpoint(data.assistantEndpoint, '/api/assistant'),
   feedbackEndpoint: endpoint(data.feedbackEndpoint, '/api/feedback'),
   eventsEndpoint: endpoint(data.eventsEndpoint, '/api/events'),
@@ -182,8 +184,9 @@ export async function mount(options = {}) {
 
     // Progress bar, stuck to the top of the screen while the form scrolls by.
     const progress = makeHost('idc-progress-host')
-    Object.assign(progress.host.style, { position: 'sticky', top: opts.progressTop, zIndex: '50' })
+    Object.assign(progress.host.style, { position: 'sticky', top: opts.progressTop || '0px', zIndex: '50' })
     hosts.progress = place(progress, (h) => form.insertBefore(h, form.firstChild))
+    if (!opts.progressTop) cleanups.push(followHeader(progress.host))
 
     // Per question: ? button inside the label, upload tip before the input, notes at the end.
     for (const [fieldId, entry] of Object.entries(FORM_ASSEMBLY_MAP)) {
@@ -219,11 +222,39 @@ export async function mount(options = {}) {
       style.textContent = themeCss
       document.head.append(style)
       form.classList.add('idc-theme')
+      // investdetroit.com's own styles shrink FormAssembly's box to 80% (transform: scale(0.8)). That makes
+      // the form look smaller than the demo and stops the progress bar from sticking, so the theme undoes it.
+      const box = form.closest('.wFormContainer')
+      box?.classList.add('idc-theme-box')
+      cleanups.push(() => box?.classList.remove('idc-theme-box'))
       // "$" in front of money answers, as on the demo (display only: the answer stays a plain number).
       const money = Object.keys(FORM_ASSEMBLY_MAP).filter((id) => FIELDS_BY_ID[id]?.type === 'money').map((id) => adapter.elementsFor(id).container).filter(Boolean)
       money.forEach((c) => c.classList.add('idc-money'))
       cleanups.push(() => style.remove(), () => form.classList.remove('idc-theme'), () => money.forEach((c) => c.classList.remove('idc-money')),
         () => form.querySelectorAll('.idc-invalid').forEach((c) => c.classList.remove('idc-invalid')))
+      // The demo's layout: questions side by side at the same widths (half, quarter...). Each row is
+      // the group FormAssembly already puts those questions in; only widths change, not the order.
+      for (const fieldId of Object.keys(FORM_ASSEMBLY_MAP)) {
+        const width = FIELDS_BY_ID[fieldId]?.width
+        const container = adapter.elementsFor(fieldId).container
+        if (!container || !['half', 'quarter', 'tiny'].includes(width)) continue
+        container.classList.add(`idc-w-${width}`)
+        if (container.parentElement && container.parentElement !== form) container.parentElement.classList.add('idc-row')
+      }
+      // FormAssembly gives each box a fixed width with an id rule (#tfa_18 { width: 240px !important }),
+      // which no stylesheet can beat. An inline !important width does, so boxes fill their column like
+      // the demo. (Multi-choice lists are skipped: they become checkboxes below.)
+      // FormAssembly's wForms script replaces querySelectorAll on the form and its fields with its own
+      // version, whose results can't be spread or indexed (only .forEach/.item work). Use the browser's own.
+      const boxes = [...Element.prototype.querySelectorAll.call(form, '.inputWrapper input[type="text"], .inputWrapper input[type="email"], .inputWrapper input[type="tel"], .inputWrapper select:not([multiple]), .inputWrapper textarea')]
+      boxes.forEach((el) => el.style.setProperty('width', '100%', 'important'))
+      cleanups.push(() => boxes.forEach((el) => el.style.removeProperty('width')))
+      // "Select all that apply": checkboxes instead of FormAssembly's Ctrl-click list, as on the demo.
+      for (const [fieldId, entry] of Object.entries(FORM_ASSEMBLY_MAP)) {
+        if (entry.kind !== 'multi' || FIELDS_BY_ID[fieldId]?.type !== 'checkboxes') continue
+        cleanups.push(enhanceMultiSelect(form.querySelector(`#${entry.id}`)))
+      }
+      cleanups.push(() => form.querySelectorAll('.idc-row, [class*="idc-w-"]').forEach((el) => el.classList.remove('idc-row', 'idc-w-half', 'idc-w-quarter', 'idc-w-tiny')))
     }
     // Opt-in: "same as home address" box just above the business address.
     const bizAddress = adapter.elementsFor('business_address').container

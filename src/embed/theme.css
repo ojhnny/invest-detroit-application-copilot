@@ -48,7 +48,78 @@
 .wForm form.idc-theme .idc-invalid select, .wForm form.idc-theme .idc-invalid textarea { border-color: var(--idc-error); background: #fdecea; }
 .wForm form.idc-theme .idc-invalid .choices { outline: 1px solid var(--idc-error); outline-offset: 4px; }
 
+/* The page around the form: investdetroit.com scales FormAssembly's box to 80% and pulls it up 60px.
+ * Shown at full size like the demo (a scaled box also breaks the sticky progress bar). */
+.wFormContainer.idc-theme-box { transform: none !important; margin-top: 0 !important; max-width: 100% !important; }
+
+/* FormAssembly's own theme for this form marks some styles !important (Arial, orange 14.5px section
+ * titles, grey label text, 28px-high boxes). Those beat ordinary rules however specific, so the
+ * properties below repeat the look above with !important. Still scoped to this one form. */
+.wForm form.idc-theme fieldset { border: 0 !important; color: var(--idc-ink) !important; }
+.wForm form.idc-theme fieldset > legend, .wForm form.idc-theme div.section > .preField {
+  font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif !important; font-size: 20px !important; font-weight: 900 !important; color: var(--idc-dark) !important;
+}
+.wForm form.idc-theme .oneField .label span, .wForm form.idc-theme .label.preField span, .wForm form.idc-theme .oneField > .label.preField {
+  font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif !important; color: var(--idc-ink) !important; font-size: 14.5px !important;
+}
+/* Text blocks and headings can carry the site's own condensed font (h4/strong inside FormAssembly text). */
+.wForm form.idc-theme .htmlSection .htmlContent *, .wForm form.idc-theme h1, .wForm form.idc-theme h2, .wForm form.idc-theme h3,
+.wForm form.idc-theme h4, .wForm form.idc-theme .wFormTitle, .wFormContainer.idc-theme-box .wFormTitle {
+  font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif !important;
+}
+.wForm form.idc-theme .htmlSection .htmlContent, .wForm form.idc-theme .htmlSection .htmlContent span {
+  font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif !important; color: var(--idc-muted) !important; font-size: 15px !important; line-height: 1.55 !important;
+}
+.wForm form.idc-theme .inputWrapper input[type="text"], .wForm form.idc-theme .inputWrapper input[type="email"], .wForm form.idc-theme .inputWrapper input[type="tel"],
+.wForm form.idc-theme .inputWrapper select, .wForm form.idc-theme .inputWrapper textarea {
+  font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif !important; font-size: 16px !important; color: var(--idc-ink) !important;
+  border: 1px solid #aeb5b3 !important; padding: 10px 12px !important; height: auto !important; min-height: 44px;
+}
+.wForm form.idc-theme .inputWrapper textarea { min-height: 96px; }
+.wForm form.idc-theme .oneChoice .label.postField, .wForm form.idc-theme .oneChoice .label.postField span {
+  font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif !important; color: var(--idc-ink) !important; font-size: 15px !important;
+}
+.wForm form.idc-theme .field-hint .hint, .wForm form.idc-theme .field-hint-inactive .hint { font-family: 'Lato', 'Helvetica Neue', Arial, sans-serif; font-size: 13px; color: var(--idc-muted) !important; }
+.wForm form.idc-theme .inputWrapper input:focus, .wForm form.idc-theme .inputWrapper select:focus, .wForm form.idc-theme .inputWrapper textarea:focus {
+  border-color: var(--idc-yellow-dark) !important; outline: 2px solid var(--idc-yellow); outline-offset: 0;
+}
+.wForm form.idc-theme .idc-invalid .inputWrapper input:not([type="radio"]):not([type="checkbox"]),
+.wForm form.idc-theme .idc-invalid .inputWrapper select, .wForm form.idc-theme .idc-invalid .inputWrapper textarea { border-color: var(--idc-error) !important; }
+
+/* The demo's layout: questions side by side. The add-on marks each question's width (from the demo's
+ * form definition) and the FormAssembly group that holds it; other items in the group stay full width. */
+.wForm form.idc-theme .idc-row:not(.offstate) { display: flex !important; flex-wrap: wrap; column-gap: 24px; align-items: flex-start; }
+.wForm form.idc-theme .idc-row > * { flex: 0 0 100%; max-width: 100%; min-width: 0; }
+.wForm form.idc-theme .idc-row > legend { flex: none; }
+.wForm form.idc-theme .idc-row > .idc-w-half { flex-basis: calc(50% - 12px); }
+.wForm form.idc-theme .idc-row > .idc-w-quarter { flex-basis: calc(25% - 18px); }
+.wForm form.idc-theme .idc-row > .idc-w-tiny { flex-basis: calc(16.666% - 20px); }
+/* Each question fills its column, as on the demo. Not !important: FormAssembly hides follow-up questions
+ * with .offstate { display: none !important }, which must keep winning (the row rule above skips them too). */
+.wForm form.idc-theme .oneField { display: block; padding-left: 0; padding-right: 0; }
+.wForm form.idc-theme .oneField .inputWrapper { display: block; width: 100%; }
+.wForm form.idc-theme .inputWrapper input[type="text"], .wForm form.idc-theme .inputWrapper input[type="email"], .wForm form.idc-theme .inputWrapper input[type="tel"],
+.wForm form.idc-theme .inputWrapper select, .wForm form.idc-theme .inputWrapper textarea { width: 100% !important; max-width: 100% !important; }
+@media (max-width: 640px) {
+  .wForm form.idc-theme .idc-row > .idc-w-half { flex-basis: 100%; }
+  .wForm form.idc-theme .idc-row > .idc-w-quarter { flex-basis: calc(50% - 12px); }
+  .wForm form.idc-theme .idc-row > .idc-w-tiny { flex-basis: calc(33.333% - 16px); }
+}
+
+/* "Select all that apply" as checkboxes (the add-on keeps FormAssembly's own list, hidden, in sync) */
+.wForm form.idc-theme .idc-visually-hidden, .wForm form.idc-theme .inputWrapper select.idc-visually-hidden {
+  position: absolute !important; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important; clip: rect(0 0 0 0) !important; white-space: nowrap !important; border: 0 !important; opacity: 0 !important;
+}
+.wForm form.idc-theme .idc-checks { columns: 3 220px; column-gap: 24px; margin-top: 4px; }
+.wForm form.idc-theme .idc-check {
+  display: flex; align-items: flex-start; gap: 8px; break-inside: avoid; margin: 0 0 10px;
+  font: 14.5px/1.35 'Lato', 'Helvetica Neue', Arial, sans-serif; color: var(--idc-ink); cursor: pointer;
+}
+.wForm form.idc-theme .idc-check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--idc-yellow-dark); flex: none; }
+.wForm form.idc-theme .idc-invalid .idc-checks { outline: 1px solid var(--idc-error); outline-offset: 4px; }
+
 /* "$" in front of money answers (display only) */
 .wForm form.idc-theme .idc-money .inputWrapper { position: relative; }
 .wForm form.idc-theme .idc-money .inputWrapper::before { content: "$"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--idc-muted); pointer-events: none; }
-.wForm form.idc-theme .idc-money .inputWrapper input { padding-left: 26px; }
+.wForm form.idc-theme .idc-money .inputWrapper input { padding-left: 26px !important; }
